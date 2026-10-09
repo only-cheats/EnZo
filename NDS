@@ -102,6 +102,24 @@ local ButtonNDS = NdsTab:CreateButton({
     end 
 })
 
+local Button = Tab:CreateButton({ 
+Name = "Noclip", 
+Description = nil, 
+Callback = function() 
+    for _, player in pairs(Players:GetPlayers()) do
+        local character = player.Character
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = not enabled
+                end
+            end
+        end
+    end
+    ClipOn = enabled
+end
+end
+
 local ButtonNDS = NdsTab:CreateButton({ 
     Name = "Teleport Game", 
     Description = nil, 
