@@ -1,0 +1,7 @@
+local currentPlaceId = game.PlaceId
+local TARGET_PLACE_ID = 189707 -- ID
+
+if currentPlaceId == TARGET_PLACE_ID then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/NDS"))()
+else
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/Main"))()
