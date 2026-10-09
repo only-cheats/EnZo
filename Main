@@ -1,0 +1,152 @@
+local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/refs/heads/main/source.lua", true))()
+
+local Window = Luna:CreateWindow({
+	Name = "En-Zo",
+	Subtitle = "12y scripter",
+	LogoID = "82795327169782",
+	LoadingEnabled = true,
+	LoadingTitle = "Luna Interface Suite",
+	LoadingSubtitle = "by EnZo himself",
+
+	ConfigSettings = {
+		RootFolder = nil,
+		ConfigFolder = "EnZoHub"
+	},
+
+	KeySystem = false,
+	KeySettings = {
+		Title = "Luna Example Key",
+		Subtitle = "Key System",
+		Note = "Best Key System Ever!",
+		SaveInRoot = false,
+		SaveKey = true,
+		Key = {"En-Zo"},
+		SecondAction = {
+			Enabled = true,
+			Type = "Link",
+			Parameter = "https://ItsTheNameGNG.com"
+		}
+	}
+})
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+local Tab = Window:CreateTab({
+	Name = "test",
+	Icon = "accessible",
+	ImageSource = "Material",
+	ShowTitle = true
+})
+
+Window:CreateHomeTab({
+	SupportedExecutors = {},
+	DiscordInvite = "1234",
+	Icon = 2,
+})
+
+local Paragraph = Tab:CreateParagraph({
+	Title = "Testing Area!",
+	Text = "idk how to change icon"
+})
+
+local Button = Tab:CreateButton({
+	Name = "Print something!",
+	Description = nil,
+    Callback = function()
+        print("Test")
+    end
+})
+
+local spamActive = false
+
+local Toggle = Tab:CreateToggle({
+	Name = "spam print",
+	Description = nil,
+	CurrentValue = false,
+    Callback = function(Value)
+        spamActive = Value
+         
+        if spamActive then
+            task.spawn(function()
+                while spamActive do
+                    print("by EnZo")
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+}, "Toggle")
+
+local Label = Tab:CreateLabel({
+	Text = "!This is the test page!",
+	Style = 2
+})
+
+local MiscTab = Window:CreateTab({
+	Name = "Misc",
+	Icon = "miscellaneous_services",
+	ImageSource = "Material",
+	ShowTitle = true
+})
+
+local ParagraphMisc = MiscTab:CreateParagraph({
+	Title = "Welcome to MISC tab",
+	Text = "here are player optimazations"
+})
+
+local currentSpeed = 16
+
+local Slider = MiscTab:CreateSlider({ 
+    Name = "Speed Slider", 
+    Range = {16, 10000},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(Value) 
+        currentSpeed = Value
+        local character = LocalPlayer.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = currentSpeed
+            end
+        end
+    end 
+}, "Slider")
+
+LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+    task.wait(0.5)
+    local humanoid = newCharacter:WaitForChild("Humanoid", 5)
+    if humanoid then
+        humanoid.WalkSpeed = currentSpeed
+    end
+end)
+
+local infJumpConnection = nil
+
+local ToggleInfJump = MiscTab:CreateToggle({ 
+    Name = "Inf Jump", 
+    Description = nil, 
+    CurrentValue = false, 
+    Callback = function(Value) 
+        if Value then
+            if not infJumpConnection then
+                infJumpConnection = UserInputService.JumpRequest:Connect(function() 
+                    local character = LocalPlayer.Character
+                    if character then
+                        local humanoid = character:FindFirstChildOfClass("Humanoid")
+                        if humanoid then
+                            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                        end
+                    end
+                end)
+            end
+        else
+            if infJumpConnection then
+                infJumpConnection:Disconnect()
+                infJumpConnection = nil
+            end
+        end
+    end 
+}, "Toggle")
