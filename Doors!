@@ -1,0 +1,1445 @@
+local players = game:GetService("Players")
+local proximityPromptService = game:GetService("ProximityPromptService")
+local runService = game:GetService("RunService")
+local userInputService = game:GetService("UserInputService")
+local teleportService = game:GetService("TeleportService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local lighting = game:GetService("Lighting")
+local virtualUser = game:GetService("VirtualUser")
+local textChatService = game:GetService("TextChatService")
+local pathfindingService = game:GetService("PathfindingService")
+local fluent = loadstring(game:HttpGetAsync("https://github.com/ActualMasterOogway/Fluent-Renewed/releases/latest/download/Fluent.luau"))()
+local saveManager = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/master/Addons/SaveManager.luau"))()
+local interfaceManager = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/master/Addons/InterfaceManager.luau"))()
+local localPlayer = players.LocalPlayer
+local currentCamera = workspace.CurrentCamera
+local entityInfo = replicatedStorage:FindFirstChild("EntityInfo")
+
+local remotesFolder = replicatedStorage:FindFirstChild("RemotesFolder") or entityInfo
+  or replicatedStorage:FindFirstChild("Bricks")
+
+replicatedStorage:FindFirstChild("LiveModifiers")
+local value = "Unknown"
+
+pcall(function()
+  local gameData = replicatedStorage:FindFirstChild("GameData")
+
+  if gameData and gameData:FindFirstChild("Floor") then
+    value = gameData.Floor.Value
+  end
+end)
+
+local doorsWindow = fluent:CreateWindow({
+  Title = "Doors",
+  SubTitle = "by EnZo",
+  TabWidth = 160,
+  Size = UDim2.fromOffset(580, 460),
+  Acrylic = true,
+  Theme = "Darker",
+  MinimizeKey = Enum.KeyCode.Q,
+})
+
+local v1 = {
+  Player = doorsWindow:CreateTab({ Title = "Player", Icon = "phosphor-person-bold" }),
+  Automation = doorsWindow:CreateTab({ Title = "Automation", Icon = "phosphor-robot-bold" }),
+  Exploits = doorsWindow:CreateTab({ Title = "Exploits", Icon = "phosphor-sword-bold" }),
+  ESP = doorsWindow:CreateTab({ Title = "ESP", Icon = "phosphor-eye-bold" }),
+  Notifier = doorsWindow:CreateTab({ Title = "Notifier", Icon = "phosphor-bell-bold" }),
+  Visuals = doorsWindow:CreateTab({ Title = "Visuals", Icon = "phosphor-paint-brush-bold" }),
+  Settings = doorsWindow:CreateTab({ Title = "Settings", Icon = "settings" }),
+  Discord = doorsWindow:CreateTab({ Title = "Discord", Icon = "message-circle" }),
+}
+
+local options = fluent.Options
+
+local v2 = {
+  RushMoving = "Rush",
+  AmbushMoving = "Ambush",
+  Eyes = "Eyes",
+  Lookman = "Lookman",
+  BackdoorRush = "Blitz",
+  BackdoorLookman = "Lookman",
+  Groundskeeper = "Groundskeeper",
+  A60 = "A-60",
+  A120 = "A-120",
+  GloombatSwarm = "Gloombat Swarm",
+  GlitchRush = "RNIUSHCG==",
+  GlitchAmbush = "AR0xMBUSH",
+  MonumentEntity = "Monument",
+  JeffTheKiller = "Jeff the Killer",
+  CustomEntity = "Custom Entity",
+  FrozenAmbush = "Frozen Ambush",
+  SallyMoving = "Sally",
+  Halt = "Halt",
+}
+
+local v3 = {
+  Lighter = "Lighter",
+  Flashlight = "Flashlight",
+  Lockpick = "Lockpicks",
+  Vitamins = "Vitamins",
+  Bandage = "Bandage",
+  Crucifix = "Crucifix",
+  CrucifixWall = "Crucifix",
+  SkeletonKey = "Skeleton Key",
+  Shears = "Shears",
+  Scanner = "Tablet",
+  GoldGun = "Golden Gun",
+  Multitool = "Multitool",
+  RiftJar = "Rift Jar",
+  Lotus = "Lotus",
+  Battery = "Battery",
+  Candle = "Candle",
+}
+
+local v4 = {
+  KeyObtain = "Key",
+  ElectricalKeyObtain = "Electrical Key",
+  LiveHintBook = "Book",
+  LibraryHintPaper = "Hint Paper",
+  LeverForGate = "Lever",
+  LiveBreakerPolePickup = "Breaker",
+  MinesGenerator = "Generator",
+  FuseObtain = "Fuse",
+  MinesGateButton = "Gate Button",
+}
+
+local v5 = {}
+
+for key, value2 in pairs(v2) do
+  if not table.find(v5, value2) then
+    table.insert(v5, value2)
+  end
+end
+
+table.sort(v5)
+local v6 = {}
+
+for key2, value3 in pairs(v3) do
+  if not table.find(v6, value3) then
+    table.insert(v6, value3)
+  end
+end
+
+table.sort(v6)
+
+local v7 = {
+  Prompts = {},
+  Doors = {},
+  Objectives = {},
+  Keys = {},
+  Entities = {},
+  Chests = {},
+  Items = {},
+  Books = {},
+  Lockers = {},
+  Gold = {},
+  Currency = {},
+  Ladders = {},
+  Bypasses = {},
+}
+
+local function f1(value4)
+  if value4:IsA("ProximityPrompt") then
+    table.insert(v7.Prompts, value4)
+  end
+
+  if value4.Name == "Door" and value4:IsA("Model") and value4.Parent
+    and tonumber(value4.Parent.Name) then
+    table.insert(v7.Doors, value4)
+  end
+
+  if v4[value4.Name] then
+    table.insert(v7.Objectives, value4)
+  end
+
+  if value4.Name == "KeyObtain" or value4.Name == "LeverForGate" then
+    table.insert(v7.Keys, value4)
+  end
+
+  if value4:IsA("Model")
+    and (value4.Name:find("Moving") or value4.Name == "A60" or value4.Name == "A120"
+      or value4.Name == "FigureRig" or value4.Name == "GrumbleRig") then
+    table.insert(v7.Entities, value4)
+  end
+
+  if value4.Name == "ChestBox" or value4.Name == "ChestBoxLocked" then
+    table.insert(v7.Chests, value4)
+  end
+
+  if value4:IsA("Model") and (value4:GetAttribute("Pickup") or value4:GetAttribute("PropType")) then
+    table.insert(v7.Items, value4)
+  end
+
+  if value4.Name == "LiveHintBook" or value4.Name == "LiveBreakerPolePickup" then
+    table.insert(v7.Books, value4)
+  end
+
+  if value4.Name == "Wardrobe" or value4.Name == "Rooms_Locker"
+    or value4.Name == "Rooms_Locker_Fridge" then
+    table.insert(v7.Lockers, value4)
+  end
+
+  if value4.Name == "GoldPile" then
+    table.insert(v7.Gold, value4)
+  end
+
+  if value4.Name == "StardustPickup" then
+    table.insert(v7.Currency, value4)
+  end
+
+  if value4.Name == "Ladder" then
+    table.insert(v7.Ladders, value4)
+  end
+
+  local v8 = value4.Name == "FakeDoor"
+  local v9 = v8
+
+  if not v8 then
+    local v10 = value4.Name == "DoorFake"
+    local v11 = v10
+
+    if not v10 then
+      local v12 = value4.Name == "Snare"
+
+      local v13 = v12 or value4.Name == "GiggleCeiling" or value4.Name == "GloomPile"
+        or value4.Name == "Seek_Arm" or value4.Name == "ChandelierObstruction"
+        or value4.Name == "Lava" or value4.Name == "ScaryWall" or value4.Name == "BananaPeel"
+        or value4.Name == "JeffTheKiller"
+
+      v11 = v13
+    end
+
+    v9 = v11
+  end
+
+  if v9 then
+    table.insert(v7.Bypasses, value4)
+  end
+end
+
+for index, value5 in ipairs(workspace:GetDescendants()) do
+  f1(value5)
+end
+
+local function f2(title, content, p1)
+  fluent:Notify({ Title = title, Content = content, Duration = p1 or 5 })
+end
+
+workspace.DescendantAdded:Connect(f1)
+
+local function f3()
+  return localPlayer.Character
+end
+
+local function f4()
+  local v14 = f3()
+  return v14 and v14:FindFirstChildOfClass("Humanoid")
+end
+
+local function f5()
+  local v15 = f3()
+  return v15 and v15:FindFirstChild("HumanoidRootPart")
+end
+
+local function f6(p2)
+  pcall(function()
+    local defaultChatSystemEvents = replicatedStorage:FindFirstChild("DefaultChatSystemEvents")
+
+    if defaultChatSystemEvents and defaultChatSystemEvents:FindFirstChild("SayMessageRequest") then
+      defaultChatSystemEvents.SayMessageRequest:FireServer(p2, "All")
+    end
+
+    if textChatService and textChatService:FindFirstChild("TextChannels")
+      and textChatService.TextChannels:FindFirstChild("RBXGeneral") then
+      textChatService.TextChannels.RBXGeneral:SendAsync(p2)
+    end
+  end)
+end
+
+v1.Player:CreateParagraph("PlayerInfo", {
+  Title = "Player Modifications",
+  Content = "Adjust your character's physical properties, movement capabilities, and interact speeds. Note: Extreme speeds may trigger anticheat.",
+})
+
+v1.Player:CreateToggle("ClientGlow", { Title = "Client Glow", Default = false })
+
+local connect
+
+v1.Player:CreateToggle("InstantPrompts", {
+  Title = "Instant Interact",
+  Default = false,
+  Callback = function(value6)
+    if value6 then
+      connect = proximityPromptService.PromptButtonHoldBegan:Connect(function(player)
+        fireproximityprompt(player)
+      end)
+    elseif connect then
+      connect:Disconnect()
+      connect = nil
+    end
+  end,
+})
+
+v1.Player:CreateSlider("WalkSpeed", {
+  Title = "Walk Speed",
+  Default = 16,
+  Min = 16,
+  Max = 100,
+  Rounding = 0,
+})
+
+v1.Player:CreateToggle("AntiSpeedBypass", { Title = "AntiSpeed Bypass", Default = false })
+v1.Player:CreateToggle("FlyToggle", { Title = "Fly", Default = false })
+v1.Player:CreateKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F" })
+
+v1.Player:CreateSlider("FlySpeed", {
+  Title = "Fly Speed",
+  Default = 20,
+  Min = 0,
+  Max = 100,
+  Rounding = 0,
+})
+
+v1.Player:CreateToggle("NoclipToggle", { Title = "Noclip", Default = false })
+
+v1.Player:CreateKeybind("NoclipKeybind", {
+  Title = "Noclip Keybind",
+  Mode = "Toggle",
+  Default = "N",
+})
+
+v1.Player:CreateToggle("EnableJump", { Title = "Enable Jumping", Default = false })
+v1.Player:CreateToggle("EnableSlide", { Title = "Enable Sliding", Default = false })
+v1.Player:CreateToggle("InfiniteJumps", { Title = "Infinite Jumps", Default = false })
+v1.Player:CreateToggle("DisableIdleKick", { Title = "Disable Idle Kick", Default = false })
+v1.Player:CreateToggle("RemoveClosetDelay", { Title = "Remove Closet Delay", Default = false })
+v1.Player:CreateToggle("RemoveAcceleration", { Title = "No Acceleration", Default = false })
+v1.Player:CreateToggle("DoorReachToggle", { Title = "Door Reach", Default = false })
+
+v1.Player:CreateSlider("PromptReachMultiplier", {
+  Title = "Prompt Reach Multiplier",
+  Default = 1,
+  Min = 1,
+  Max = 3,
+  Rounding = 1,
+})
+
+v1.Player:CreateToggle("PromptClip", { Title = "Prompt Clip", Default = false })
+
+v1.Automation:CreateToggle("AutoProxi", {
+  Title = "Auto Proximity Interact (Hold R)",
+  Default = false,
+})
+
+v1.Automation:CreateToggle("AutoBreakerBox", { Title = "Auto Breaker Box", Default = false })
+v1.Automation:CreateToggle("AutoSolveAnchors", { Title = "Auto Solve Anchors", Default = false })
+
+v1.Automation:CreateToggle("AutoHeartbeatMinigame", {
+  Title = "Auto Heartbeat Minigame",
+  Default = false,
+})
+
+v1.Automation:CreateToggle("AutoUnlockPadlock", {
+  Title = "Auto Unlock Padlock",
+  Default = false,
+})
+
+v1.Automation:CreateSlider("AutoUnlockPadlockDistance", {
+  Title = "Padlock Unlock Distance",
+  Default = 15,
+  Min = 5,
+  Max = 50,
+  Rounding = 0,
+})
+
+v1.Automation:CreateToggle("AutoLibraryGuess", {
+  Title = "Auto Library Guess Code",
+  Default = false,
+})
+
+v1.Automation:CreateToggle("AutoCloset", {
+  Title = "Auto Closet (Entity Detection)",
+  Default = false,
+})
+
+v1.Automation:CreateToggle("LootAura", { Title = "Loot Aura", Default = false })
+
+v1.Automation:CreateToggle("AutoSteerMinecart", {
+  Title = "Auto Steer Minecart",
+  Default = false,
+})
+
+v1.Automation:CreateToggle("RoomsAutoWalk", { Title = "Rooms Auto Walk", Default = false })
+
+v1.Automation:CreateButton({
+  Title = "Auto Complete Dam Seek",
+  Callback = function()
+    if value == "Mines" then
+      for index2, value7 in ipairs(v7.Prompts) do
+        if value7.Name == "ValvePrompt" and value7.Parent and value7.Parent.Parent
+          and value7.Parent.Parent.Name == "WaterPump" then
+          task.wait(0.5)
+          fireproximityprompt(value7)
+          task.wait(0.5)
+        end
+      end
+    end
+  end,
+})
+
+v1.Automation:CreateButton({
+  Title = "Auto Complete Cringle",
+  Callback = function()
+    local findFirstChild = workspace:FindFirstChild("RippleExitDoor", true)
+
+    if findFirstChild then
+      f3():PivotTo(findFirstChild:GetPivot())
+    end
+  end,
+})
+
+v1.Exploits:CreateToggle("SpoofCrouch", { Title = "Spoof Crouch", Default = false })
+v1.Exploits:CreateToggle("PositionSpoof", { Title = "Position Spoof", Default = false })
+
+v1.Exploits:CreateToggle("VelocityManipulation", {
+  Title = "Velocity Manipulation",
+  Default = false,
+})
+
+v1.Exploits:CreateToggle("InfiniteItems", { Title = "Infinite Items (Client)", Default = false })
+v1.Exploits:CreateToggle("BypassGiggle", { Title = "Bypass Giggle", Default = false })
+v1.Exploits:CreateToggle("BypassDupe", { Title = "Bypass Dupe", Default = false })
+v1.Exploits:CreateToggle("BypassEyes", { Title = "Bypass Eyes", Default = false })
+v1.Exploits:CreateToggle("BypassLookman", { Title = "Bypass Lookman", Default = false })
+
+v1.Exploits:CreateToggle("BypassGloombatEggs", {
+  Title = "Bypass Gloombat Eggs",
+  Default = false,
+})
+
+v1.Exploits:CreateToggle("BypassSeekObstructions", {
+  Title = "Bypass Seek Obstructions",
+  Default = false,
+})
+
+v1.Exploits:CreateToggle("BypassVacuum", { Title = "Bypass Vacuum", Default = false })
+v1.Exploits:CreateToggle("BypassKillbricks", { Title = "Bypass Killbricks", Default = false })
+v1.Exploits:CreateToggle("BypassSeekingWall", { Title = "Bypass Seeking Wall", Default = false })
+v1.Exploits:CreateToggle("BypassSnare", { Title = "Bypass Snare", Default = false })
+v1.Exploits:CreateToggle("BypassBanana", { Title = "Bypass Banana", Default = false })
+v1.Exploits:CreateToggle("BypassJeff", { Title = "Bypass Jeff", Default = false })
+v1.Exploits:CreateToggle("RemoveScreech", { Title = "Remove Screech", Default = false })
+v1.Exploits:CreateToggle("RemoveHalt", { Title = "Remove Halt", Default = false })
+v1.Exploits:CreateToggle("RemoveA90", { Title = "Remove A-90", Default = false })
+v1.Exploits:CreateToggle("RemoveDread", { Title = "Remove Dread", Default = false })
+v1.Exploits:CreateToggle("RemoveSurge", { Title = "Remove Surge", Default = false })
+v1.Exploits:CreateToggle("NoScreechDamage", { Title = "No Screech Damage", Default = false })
+v1.Exploits:CreateToggle("NoHaltDamage", { Title = "No Halt Damage", Default = false })
+v1.Exploits:CreateToggle("NoA90Damage", { Title = "No A-90 Damage", Default = false })
+v1.Exploits:CreateToggle("NoSurgeDamage", { Title = "No Surge Damage", Default = false })
+v1.Exploits:CreateToggle("DeleteGates", { Title = "Delete Gates", Default = false })
+v1.Exploits:CreateToggle("DeletePuzzleDoor", { Title = "Delete Puzzle Door", Default = false })
+v1.Exploits:CreateToggle("NoSkeletonDoors", { Title = "No Skeleton Doors", Default = false })
+v1.Exploits:CreateToggle("RoomsNoLock", { Title = "A-000 Door No Lock", Default = false })
+
+v1.Exploits:CreateToggle("ObjectBypass", {
+  Title = "Object Bypass (Chandeliers/Obstacles)",
+  Default = false,
+})
+
+v1.Exploits:CreateButton({
+  Title = "Bypass A-90 (Background Loop)",
+  Callback = function()
+    task.spawn(function()
+      while true do
+        task.wait(0.23)
+        pcall(function() replicatedStorage.RemotesFolder.A90:FireServer("didnt") end)
+      end
+    end)
+
+    f2("A-90 Bypass", "A-90 background bypass started.")
+  end,
+})
+
+v1.ESP:CreateParagraph("ESPInfo", {
+  Title = "Extra Sensory Perception",
+  Content = "Highlight objects, entities, and items through walls to gain a massive advantage.",
+})
+
+v1.ESP:CreateToggle("DoorESP", { Title = "Door ESP", Default = false })
+v1.ESP:CreateToggle("ObjectiveESP", { Title = "Objective ESP", Default = false })
+v1.ESP:CreateToggle("KeyESP", { Title = "Key & Lever ESP", Default = false })
+v1.ESP:CreateToggle("EntityESP", { Title = "Entity ESP", Default = false })
+v1.ESP:CreateToggle("ChestESP", { Title = "Chest ESP", Default = false })
+v1.ESP:CreateToggle("ItemESP", { Title = "Item ESP", Default = false })
+v1.ESP:CreateToggle("BookESP", { Title = "Book & Breaker ESP", Default = false })
+v1.ESP:CreateToggle("LockerESP", { Title = "Locker & Hiding ESP", Default = false })
+v1.ESP:CreateToggle("GoldESP", { Title = "Gold ESP", Default = false })
+v1.ESP:CreateToggle("CurrencyESP", { Title = "Currency (Stardust) ESP", Default = false })
+v1.ESP:CreateToggle("LadderESP", { Title = "Ladder ESP", Default = false })
+v1.ESP:CreateToggle("PlayerESP", { Title = "Player ESP", Default = false })
+
+v1.ESP:CreateSlider("MinGoldValue", {
+  Title = "Minimum Gold Value for ESP",
+  Default = 0,
+  Min = 0,
+  Max = 150,
+  Rounding = 0,
+})
+
+v1.Notifier:CreateParagraph("NotifierInfo", {
+  Title = "Event Notifiers",
+  Content = "Receive immediate UI alerts or chat messages when specific items or entities spawn into the world.",
+})
+
+v1.Notifier:CreateToggle("EntityNotifier", { Title = "Enable Entity Notifier", Default = false })
+
+v1.Notifier:CreateDropdown("NotifyEntitiesList", {
+  Title = "Select Entities to Notify",
+  Values = v5,
+  Multi = true,
+  Default = { "Rush", "Ambush", "Eyes", "Halt", "Blitz", "Lookman" },
+})
+
+v1.Notifier:CreateToggle("ItemNotifier", { Title = "Enable Item Notifier", Default = false })
+
+v1.Notifier:CreateDropdown("NotifyItemsList", {
+  Title = "Select Items to Notify",
+  Values = v6,
+  Multi = true,
+  Default = { "Crucifix", "Skeleton Key" },
+})
+
+v1.Notifier:CreateToggle("NotifyChat", { Title = "Send Notifications to Chat", Default = false })
+v1.Notifier:CreateToggle("NotifyOxygen", { Title = "Notify Oxygen Level", Default = false })
+v1.Notifier:CreateToggle("NotifyHaste", { Title = "Notify Haste Time", Default = false })
+
+v1.Notifier:CreateToggle("NotifyLibraryCode", {
+  Title = "Auto Read & Notify Library Code",
+  Default = false,
+})
+
+v1.Visuals:CreateParagraph("VisualsInfo", {
+  Title = "Visual Manipulations",
+  Content = "Change how the game is rendered. Increase brightness, remove fog, change FOV, and remove screen effects.",
+})
+
+v1.Visuals:CreateToggle("Fullbright", { Title = "Fullbright", Default = false })
+v1.Visuals:CreateToggle("AmbientToggle", { Title = "Custom Ambient Lighting", Default = false })
+
+v1.Visuals:CreateColorpicker("AmbientColor", {
+  Title = "Ambient Color",
+  Default = Color3.fromRGB(255, 255, 255),
+})
+
+v1.Visuals:CreateToggle("CustomFOV", { Title = "Enable Custom FOV", Default = false })
+
+v1.Visuals:CreateSlider("FOVValue", {
+  Title = "Field of View",
+  Default = 70,
+  Min = 70,
+  Max = 120,
+  Rounding = 0,
+})
+
+v1.Visuals:CreateToggle("ThirdPerson", { Title = "Third Person", Default = false })
+
+v1.Visuals:CreateSlider("ThirdPersonX", {
+  Title = "Third Person X Offset",
+  Default = 1.5,
+  Min = -10,
+  Max = 10,
+  Rounding = 1,
+})
+
+v1.Visuals:CreateSlider("ThirdPersonY", {
+  Title = "Third Person Y Offset",
+  Default = 1,
+  Min = -10,
+  Max = 10,
+  Rounding = 1,
+})
+
+v1.Visuals:CreateSlider("ThirdPersonZ", {
+  Title = "Third Person Z Offset",
+  Default = 5,
+  Min = -10,
+  Max = 10,
+  Rounding = 1,
+})
+
+v1.Visuals:CreateToggle("RemoveCameraShake", { Title = "Remove Camera Shake", Default = false })
+v1.Visuals:CreateToggle("RemoveCameraFog", { Title = "Remove Camera Fog", Default = false })
+
+v1.Visuals:CreateToggle("TransparentHidingSpots", {
+  Title = "Transparent Hiding Spots",
+  Default = false,
+})
+
+v1.Visuals:CreateSlider("HidingSpotTransparency", {
+  Title = "Hiding Spot Transparency",
+  Default = 0.5,
+  Min = 0,
+  Max = 1,
+  Rounding = 2,
+})
+
+v1.Visuals:CreateToggle("DisableGlitchJumpscare", {
+  Title = "Disable Glitch Jumpscare",
+  Default = false,
+})
+
+v1.Visuals:CreateToggle("DisableTimothyJumpscare", {
+  Title = "Disable Timothy Jumpscare",
+  Default = false,
+})
+
+v1.Visuals:CreateToggle("DisableVoidJumpscare", {
+  Title = "Disable Void Jumpscare",
+  Default = false,
+})
+
+v1.Visuals:CreateToggle("DisableEntityJumpscares", {
+  Title = "Disable Entity Jumpscares",
+  Default = false,
+})
+
+v1.Visuals:CreateToggle("DisableHideVignette", {
+  Title = "Disable Hide Vignette",
+  Default = false,
+})
+
+v1.Visuals:CreateToggle("DisableFiredamp", {
+  Title = "Disable Firedamp Effect",
+  Default = false,
+})
+
+local bodyVelocity = Instance.new("BodyVelocity")
+bodyVelocity.MaxForce = Vector3.new(9000000000, 9000000000, 9000000000)
+
+local bodyVelocity2 = Instance.new("BodyVelocity")
+bodyVelocity2.MaxForce = Vector3.new(9000000000, 9000000000, 9000000000)
+
+local pointLight = Instance.new("PointLight")
+pointLight.Range = 10000
+pointLight.Brightness = 2
+
+local function f7()
+  local v16 = f3()
+
+  if not v16 then
+    return nil
+  else
+    local libraryHintPaper = v16:FindFirstChild("LibraryHintPaper")
+      or localPlayer.Backpack:FindFirstChild("LibraryHintPaper")
+
+    local hints = localPlayer.PlayerGui:FindFirstChild("PermUI")
+      and localPlayer.PlayerGui.PermUI:FindFirstChild("Hints")
+
+    if libraryHintPaper and hints then
+      local v17 = { "_", "_", "_", "_", "_" }
+
+      for key3, value8 in pairs(libraryHintPaper:WaitForChild("UI"):GetChildren()) do
+        if value8:IsA("ImageLabel") and value8.Name ~= "Image" then
+          for key4, value9 in pairs(hints:GetChildren()) do
+            if value9:IsA("ImageLabel") and value9.Visible
+              and value8.ImageRectOffset == value9.ImageRectOffset then
+              v17[tonumber(value8.Name)] = value9:FindFirstChild("TextLabel").Text
+            end
+          end
+        end
+      end
+
+      return table.concat(v17)
+    end
+
+    return nil
+  end
+end
+
+local function f8()
+  local v18 = f4()
+
+  if not v18 or v18.MoveDirection == Vector3.zero then
+    return Vector3.zero
+  else
+    local vector = Vector3.new(
+      currentCamera.CFrame.LookVector.X, 0, currentCamera.CFrame.LookVector.Z
+    )
+
+    local cframe = CFrame.new(
+      currentCamera.CFrame.Position, currentCamera.CFrame.Position + vector
+    )
+
+    local v19 = (currentCamera.CFrame
+        * CFrame.new(cframe:VectorToObjectSpace(v18.MoveDirection))).Position
+      - currentCamera.CFrame.Position
+
+    return v19 == Vector3.zero and Vector3.zero or v19.Unit
+  end
+end
+
+local v20 = false
+
+userInputService.InputBegan:Connect(function(input, p3)
+  if not p3 then
+    if input.KeyCode == Enum.KeyCode.R then
+      v20 = true
+    end
+
+    if options.FlyKeybind and input.KeyCode == options.FlyKeybind.Value then
+      options.FlyToggle:SetValue(not options.FlyToggle.Value)
+    end
+
+    if options.NoclipKeybind and input.KeyCode == options.NoclipKeybind.Value then
+      options.NoclipToggle:SetValue(not options.NoclipToggle.Value)
+    end
+
+    if input.KeyCode == Enum.KeyCode.Space and options.InfiniteJumps
+      and options.InfiniteJumps.Value then
+      local v21 = f4()
+
+      if v21 then
+        v21:ChangeState(Enum.HumanoidStateType.Jumping)
+      end
+    end
+  end
+end)
+
+userInputService.InputEnded:Connect(function(input2)
+  if input2.KeyCode == Enum.KeyCode.R then
+    v20 = false
+  end
+end)
+
+local v22
+
+if hookmetamethod then
+  v22 = nil
+
+  v22 = hookmetamethod(game, "__namecall", newcclosure(function(p4, ...)
+    local v23 = { ... }
+    local v24 = getnamecallmethod()
+
+    if p4.Name == "Crouch" and v24 == "FireServer" then
+      if options.SpoofCrouch and options.SpoofCrouch.Value
+        or options.PositionSpoof and options.PositionSpoof.Value then
+        v23[1] = true
+      end
+
+-- https://discord.gg/AwGHNh7Z7T
+      v23[2] = true
+    end
+
+    if (p4.Name == "ClutchHeartbeat" or p4.Name == "HideMonster") and v24 == "FireServer"
+      and options.AutoHeartbeatMinigame and options.AutoHeartbeatMinigame.Value then
+      return
+    end
+
+    if p4.Name == "MotorReplication" and v24 == "FireServer" then
+      if options.BypassEyes and options.BypassEyes.Value and workspace:FindFirstChild("Eyes") then
+        v23[1] = -650
+      end
+
+      if options.BypassLookman and options.BypassLookman.Value
+        and workspace:FindFirstChild("BackdoorLookman") then
+        v23[1] = -650
+      end
+    end
+
+    return v22(p4, unpack(v23))
+  end))
+end
+
+localPlayer.Idled:Connect(function()
+  if options.DisableIdleKick and options.DisableIdleKick.Value then
+    virtualUser:CaptureController()
+    virtualUser:ClickButton2(Vector2.new())
+  end
+end)
+
+local v25 = {}
+
+local function f9()
+  v25 = {}
+  local v26 = f3()
+
+  if v26 then
+    for index3, value10 in ipairs(v26:GetDescendants()) do
+      if value10:IsA("BasePart") then
+        table.insert(v25, value10)
+      end
+    end
+  end
+end
+
+local v27 = {}
+
+local function f10(key5)
+  if v27[key5] then
+    pcall(function() v27[key5].Highlight:Destroy() end)
+
+    pcall(function()
+      if v27[key5].Billboard then
+        v27[key5].Billboard:Destroy()
+      end
+    end)
+
+    v27[key5] = nil
+  end
+end
+
+local function makeTextLabel(key6, color, text)
+  if not key6 or v27[key6] then
+    return
+  else
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = color
+    highlight.OutlineColor = Color3.new(color.R * 0.8, color.G * 0.8, color.B * 0.8)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = key6
+
+    local primaryPart = key6:IsA("Model")
+        and (key6.PrimaryPart or key6:FindFirstChildWhichIsA("BasePart"))
+      or key6
+
+    local hubESPLabel = nil
+
+    if primaryPart then
+      hubESPLabel = Instance.new("BillboardGui")
+      hubESPLabel.Name = "HubESP_Label"
+      hubESPLabel.AlwaysOnTop = true
+      hubESPLabel.Size = UDim2.new(0, 120, 0, 30)
+      hubESPLabel.StudsOffset = Vector3.new(0, 2, 0)
+      hubESPLabel.Parent = primaryPart
+
+      local textLabel = Instance.new("TextLabel")
+      textLabel.Size = UDim2.new(1, 0, 1, 0)
+      textLabel.BackgroundTransparency = 1
+      textLabel.Text = text
+      textLabel.TextColor3 = color
+      textLabel.TextStrokeTransparency = 0
+      textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+      textLabel.TextScaled = true
+      textLabel.Font = Enum.Font.GothamBold
+      textLabel.Parent = hubESPLabel
+    end
+
+    v27[key6] = { Highlight = highlight, Billboard = hubESPLabel }
+    return
+  end
+end
+
+localPlayer.CharacterAdded:Connect(function(character)
+  f9()
+
+  character.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("BasePart") then
+      table.insert(v25, descendant)
+    end
+  end)
+end)
+
+if f3() then
+  f9()
+end
+
+runService.Stepped:Connect(function()
+  if options.NoclipToggle.Value then
+    for index4, value11 in ipairs(v25) do
+      value11.CanCollide = false
+    end
+  end
+end)
+
+runService.RenderStepped:Connect(function()
+  local v28 = f3()
+
+  if not v28 then
+    return
+  else
+    local v29 = f5()
+    local v30 = f4()
+
+    if options.ClientGlow.Value and v29 then
+      pointLight.Parent = v29
+    else
+      pointLight.Parent = nil
+    end
+
+    if v30 and v30.WalkSpeed < options.WalkSpeed.Value then
+      v30.WalkSpeed = options.WalkSpeed.Value
+    end
+
+    if options.FlyToggle.Value and v29 then
+      bodyVelocity.Parent = v29
+      bodyVelocity.Velocity = f8() * options.FlySpeed.Value
+    else
+      bodyVelocity.Parent = nil
+    end
+
+    if options.VelocityManipulation.Value and v29 then
+      bodyVelocity2.Parent = v29
+      bodyVelocity2.Velocity = v29.CFrame.LookVector * 2.25
+    else
+      bodyVelocity2.Parent = nil
+    end
+
+    if options.CustomFOV.Value then
+      currentCamera.FieldOfView = options.FOVValue.Value
+    end
+
+    if options.ThirdPerson.Value then
+      local cframe2 = CFrame.new(
+        options.ThirdPersonX.Value, options.ThirdPersonY.Value, options.ThirdPersonZ.Value
+      )
+
+      currentCamera.CFrame = currentCamera.CFrame * cframe2
+
+      for index5, value12 in ipairs(v25) do
+        value12.LocalTransparencyModifier = 0
+      end
+    end
+
+    if options.EnableJump.Value then
+      v28:SetAttribute("CanJump", true)
+    end
+
+    if options.EnableSlide.Value then
+      v28:SetAttribute("CanSlide", true)
+    end
+
+    if options.RemoveCameraFog.Value then
+      lighting.FogEnd = 10000000
+    end
+
+    return
+  end
+end)
+
+task.spawn(function()
+  while task.wait(0.2) do
+    local v31 = f5()
+
+    if v31 and options.RemoveAcceleration.Value then
+      v31.CustomPhysicalProperties = PhysicalProperties.new(100, 0.7, 0, 1, 1)
+    end
+
+    if options.AutoProxi.Value and v20 and v31 and not v31.Anchored then
+      for index6, value13 in ipairs(v7.Prompts) do
+        local v32 = value13
+
+        if v32.Parent and v32.Enabled then
+          local position
+
+          pcall(function()
+            position = v32.Parent:IsA("BasePart") and v32.Parent.Position
+              or v32.Parent.PrimaryPart and v32.Parent.PrimaryPart.Position
+          end)
+
+          if position and (v31.Position - position).Magnitude <= v32.MaxActivationDistance then
+            local lower = (v32.ActionText or ""):lower()
+
+            if not (lower:find("close") or lower:find("exit") or lower:find("leave")
+              or lower:find("stop") or lower:find("hide")) then
+              fireproximityprompt(v32)
+            end
+          end
+        end
+      end
+    end
+
+    if options.AutoBreakerBox.Value and workspace:FindFirstChild("CurrentRooms") then
+      if workspace.CurrentRooms:FindFirstChild("ElevatorBreaker", true) then
+        pcall(function() remotesFolder.EBF:FireServer() end)
+      end
+    end
+
+    if options.AutoSolveAnchors.Value then
+      local mainUI = localPlayer.PlayerGui:FindFirstChild("MainUI")
+
+      if mainUI and mainUI:FindFirstChild("AnchorHintFrame") and v31 then
+        local text2 = mainUI.AnchorHintFrame.Code.Text
+
+        for index7, value14 in ipairs(v7.Objectives) do
+          local v33 = value14
+
+          if v33.Name == "MinesAnchor" and v33.Parent and not v33:GetAttribute("Activated") then
+            if localPlayer:DistanceFromCharacter(v33:GetPivot().Position) < 15 then
+              pcall(function() v33:WaitForChild("AnchorRemote"):InvokeServer(text2) end)
+            end
+          end
+        end
+      end
+    end
+
+    if options.AutoUnlockPadlock.Value and v31 then
+      local findFirstChild2 = workspace:FindFirstChild("Padlock", true)
+
+      if findFirstChild2
+        and findFirstChild2.PrimaryPart
+        and localPlayer:DistanceFromCharacter(findFirstChild2.PrimaryPart.Position)
+          < options.AutoUnlockPadlockDistance.Value then
+        local v34 = f7()
+
+        if v34 and not string.find(v34, "_") then
+          pcall(function() remotesFolder.PL:FireServer(v34) end)
+        end
+      end
+    end
+
+    if options.AutoLibraryGuess.Value and v31 then
+      local findFirstChild3 = workspace:FindFirstChild("Padlock", true)
+
+      if findFirstChild3 and findFirstChild3.PrimaryPart
+        and localPlayer:DistanceFromCharacter(findFirstChild3.PrimaryPart.Position) < 15 then
+        local v35 = f7()
+
+        if v35 then
+          v35:gsub("_", function() return tostring(math.random(0, 9)) end)
+        end
+      end
+    end
+
+    if options.LootAura.Value and v31 then
+      for index8, value15 in ipairs(v7.Prompts) do
+      end
+    end
+  end
+end)
+
+task.spawn(function()
+  while task.wait(0.5) do
+    local value16 = options.PromptReachMultiplier.Value
+    local value17 = options.PromptClip.Value
+
+    for index9, value18 in ipairs(v7.Prompts) do
+      if value18.Parent then
+        if not value18:GetAttribute("OrigMaxDist") then
+          value18:SetAttribute("OrigMaxDist", value18.MaxActivationDistance)
+          value18:SetAttribute("OrigLOS", value18.RequiresLineOfSight)
+        end
+
+        value18.MaxActivationDistance = value18:GetAttribute("OrigMaxDist") * value16
+
+        if value17 then
+          value18.RequiresLineOfSight = false
+        else
+          value18.RequiresLineOfSight = value18:GetAttribute("OrigLOS")
+        end
+      end
+    end
+  end
+end)
+
+task.spawn(function()
+  while task.wait(0.5) do
+    if options.Fullbright.Value then
+      lighting.Brightness = 2.5
+      lighting.ClockTime = 14
+      lighting.FogEnd = 100000
+      lighting.GlobalShadows = false
+      lighting.Ambient = Color3.fromRGB(200, 200, 200)
+    end
+
+    if options.AmbientToggle.Value then
+      lighting.Ambient = options.AmbientColor.Value
+    end
+
+    for key7 in pairs(v27) do
+      if not key7 or not key7.Parent then
+        f10(key7)
+      end
+    end
+
+    if options.DoorESP.Value then
+      for index10, value19 in ipairs(v7.Doors) do
+        if value19.Parent then
+          makeTextLabel(value19, Color3.fromRGB(0, 200, 255), "Door")
+        end
+      end
+    else
+      for index11, value20 in ipairs(v7.Doors) do
+        f10(value20)
+      end
+    end
+
+    if options.ObjectiveESP.Value then
+      for index12, value21 in ipairs(v7.Objectives) do
+        if value21.Parent then
+          makeTextLabel(value21, Color3.fromRGB(0, 255, 0), v4[value21.Name] or value21.Name)
+        end
+      end
+    else
+      for index13, value22 in ipairs(v7.Objectives) do
+        f10(value22)
+      end
+    end
+
+    if options.KeyESP.Value then
+      for index14, value23 in ipairs(v7.Keys) do
+        if value23.Parent then
+          makeTextLabel(value23, Color3.fromRGB(90, 255, 40), v4[value23.Name] or value23.Name)
+        end
+      end
+    else
+      for index15, value24 in ipairs(v7.Keys) do
+        f10(value24)
+      end
+    end
+
+    if options.EntityESP.Value then
+      for index16, value25 in ipairs(v7.Entities) do
+        if value25.Parent then
+          makeTextLabel(value25, Color3.fromRGB(255, 0, 0), value25.Name:gsub("Moving", ""))
+        end
+      end
+    else
+      for index17, value26 in ipairs(v7.Entities) do
+        f10(value26)
+      end
+    end
+
+    if options.ChestESP.Value then
+      for index18, value27 in ipairs(v7.Chests) do
+        if value27.Parent then
+          makeTextLabel(value27, Color3.fromRGB(205, 120, 255), "Chest")
+        end
+      end
+    else
+      for index19, value28 in ipairs(v7.Chests) do
+        f10(value28)
+      end
+    end
+
+    if options.ItemESP.Value then
+      for index20, value29 in ipairs(v7.Items) do
+        if value29.Parent then
+          makeTextLabel(value29, Color3.fromRGB(170, 0, 255), value29.Name)
+        end
+      end
+    else
+      for index21, value30 in ipairs(v7.Items) do
+        f10(value30)
+      end
+    end
+
+    if options.BookESP.Value then
+      for index22, value31 in ipairs(v7.Books) do
+        if value31.Parent then
+          makeTextLabel(
+            value31, Color3.fromRGB(160, 190, 255), v4[value31.Name] or value31.Name
+          )
+        end
+      end
+    else
+      for index23, value32 in ipairs(v7.Books) do
+        f10(value32)
+      end
+    end
+
+    if options.LockerESP.Value then
+      for index24, value33 in ipairs(v7.Lockers) do
+        if value33.Parent then
+          makeTextLabel(value33, Color3.fromRGB(255, 170, 0), "Locker")
+        end
+      end
+    else
+      for index25, value34 in ipairs(v7.Lockers) do
+        f10(value34)
+      end
+    end
+
+    if options.GoldESP.Value then
+      for index26, value35 in ipairs(v7.Gold) do
+        if value35.Parent
+          and (value35:GetAttribute("GoldValue") or 0) >= options.MinGoldValue.Value then
+          makeTextLabel(
+            value35, Color3.fromRGB(255, 255, 0),
+            "Gold [" .. tostring(value35:GetAttribute("GoldValue")) .. "]"
+          )
+        else
+          f10(value35)
+        end
+      end
+    else
+      for index27, value36 in ipairs(v7.Gold) do
+        f10(value36)
+      end
+    end
+
+    if options.CurrencyESP.Value then
+      for index28, value37 in ipairs(v7.Currency) do
+        if value37.Parent then
+          makeTextLabel(value37, Color3.fromRGB(255, 255, 0), "Stardust")
+        end
+      end
+    else
+      for index29, value38 in ipairs(v7.Currency) do
+        f10(value38)
+      end
+    end
+
+    if options.LadderESP.Value then
+      for index30, value39 in ipairs(v7.Ladders) do
+        if value39.Parent then
+          makeTextLabel(value39, Color3.fromRGB(255, 255, 255), "Ladder")
+        end
+      end
+    else
+      for index31, value40 in ipairs(v7.Ladders) do
+        f10(value40)
+      end
+    end
+
+    if options.PlayerESP.Value then
+      for key8, value41 in pairs(players:GetPlayers()) do
+        if value41 ~= localPlayer and value41.Character then
+          makeTextLabel(value41.Character, Color3.fromRGB(255, 255, 255), value41.Name)
+        end
+      end
+    else
+      for key9, value42 in pairs(players:GetPlayers()) do
+        if value42 ~= localPlayer and value42.Character then
+          f10(value42.Character)
+        end
+      end
+    end
+  end
+end)
+
+task.spawn(function()
+  while task.wait(0.5) do
+    for index32, value43 in ipairs(v7.Bypasses) do
+      if value43.Parent then
+        if options.BypassDupe.Value
+          and (value43.Name == "FakeDoor" or value43.Name == "DoorFake") then
+          local hidden = value43:FindFirstChild("Hidden")
+
+          if hidden then
+            hidden.CanTouch = false
+          end
+
+          local lock = value43:FindFirstChild("Lock")
+
+          if lock and lock:FindFirstChild("UnlockPrompt") then
+            lock.UnlockPrompt.Enabled = false
+          end
+        end
+
+        if options.BypassSnare.Value and value43.Name == "Snare" then
+          for index33, value44 in ipairs(value43:GetDescendants()) do
+            if value44:IsA("BasePart") then
+              value44.CanTouch = false
+            end
+          end
+        end
+
+        if options.BypassGiggle.Value and value43.Name == "GiggleCeiling" then
+          local hitbox = value43:FindFirstChild("Hitbox")
+
+          if hitbox then
+            hitbox.CanTouch = false
+          end
+        end
+
+        if options.BypassGloombatEggs.Value and value43.Name == "GloomPile" then
+          for index34, value45 in ipairs(value43:GetDescendants()) do
+            if value45:IsA("BasePart") then
+              value45.CanTouch = false
+            end
+          end
+        end
+
+        if options.BypassSeekObstructions.Value
+          and (value43.Name == "Seek_Arm" or value43.Name == "ChandelierObstruction") then
+          for index35, value46 in ipairs(value43:GetDescendants()) do
+            if value46:IsA("BasePart") then
+              value46.CanTouch = false
+            end
+          end
+        end
+
+        if options.BypassKillbricks.Value and value43.Name == "Lava" then
+          value43.CanTouch = false
+        end
+
+        if options.BypassSeekingWall.Value and value43.Name == "ScaryWall" then
+          for index36, value47 in ipairs(value43:GetDescendants()) do
+            if value47:IsA("BasePart") then
+              value47.CanTouch = false
+              value47.CanCollide = false
+            end
+          end
+        end
+
+        if options.BypassBanana.Value and value43.Name == "BananaPeel" then
+          value43.CanTouch = false
+        end
+
+        if options.BypassJeff.Value and value43.Name == "JeffTheKiller" then
+          for index37, value48 in ipairs(value43:GetDescendants()) do
+            if value48:IsA("BasePart") then
+              value48.CanTouch = false
+              value48.CanCollide = false
+            end
+          end
+
+          local humanoid = value43:FindFirstChild("Humanoid")
+
+          if humanoid then
+            humanoid.Health = 0
+          end
+        end
+      end
+    end
+
+    if options.ObjectBypass.Value then
+      for index38, value49 in ipairs(workspace:GetDescendants()) do
+        if value49:IsA("Model") and value49:GetAttribute("LoadModule") == "AnimatedObstacleKill" then
+          for index39, value50 in ipairs(value49:GetDescendants()) do
+            if value50:IsA("BasePart") then
+              value50.CanTouch = false
+              value50.CanQuery = false
+            end
+          end
+        end
+      end
+    end
+
+    if options.RoomsNoLock.Value then
+      for index40, value51 in ipairs(workspace:GetDescendants()) do
+        if value51.Name == "RoomsDoor_Entrance" then
+          local findFirstChild4 = value51:FindFirstChild("EnterPrompt", true)
+
+          if findFirstChild4 then
+            findFirstChild4.Enabled = true
+          end
+        end
+      end
+    end
+  end
+end)
+
+local function f11(p5, value52)
+  local findFirstChild5 = remotesFolder:FindFirstChild(p5)
+    or entityInfo and entityInfo:FindFirstChild(p5)
+
+  if findFirstChild5 then
+    findFirstChild5.Parent = value52 and nil or remotesFolder
+  end
+end
+
+options.RemoveScreech:OnChanged(function() f11("Screech", options.RemoveScreech.Value) end)
+options.RemoveHalt:OnChanged(function() f11("ShadeResult", options.RemoveHalt.Value) end)
+options.RemoveA90:OnChanged(function() f11("A90", options.RemoveA90.Value) end)
+options.RemoveSurge:OnChanged(function() f11("SurgeRemote", options.RemoveSurge.Value) end)
+options.NoScreechDamage:OnChanged(function() f11("Screech", options.NoScreechDamage.Value) end)
+options.NoHaltDamage:OnChanged(function() f11("ShadeResult", options.NoHaltDamage.Value) end)
+options.NoA90Damage:OnChanged(function() f11("A90", options.NoA90Damage.Value) end)
+options.NoSurgeDamage:OnChanged(function() f11("SurgeRemote", options.NoSurgeDamage.Value) end)
+
+workspace.DescendantAdded:Connect(function(descendant2)
+  if options.DeleteGates.Value and descendant2.Name == "Gate" then
+    local waitForChild = descendant2:WaitForChild("ThingToOpen", 2)
+
+    if waitForChild then
+      waitForChild:Destroy()
+    end
+  end
+
+  if options.DeletePuzzleDoor.Value and descendant2.Name == "Paintings" then
+    local waitForChild2 = descendant2:WaitForChild("MovingDoor", 2)
+
+    if waitForChild2 then
+      waitForChild2:Destroy()
+    end
+  end
+
+  if options.NoSkeletonDoors.Value and descendant2.Name == "Wax_Door" then
+    descendant2:Destroy()
+  end
+
+  if options.EntityNotifier.Value then
+    local v36 = v2[descendant2.Name]
+
+    if v36 then
+      local v37 = false
+
+      for key10, value53 in pairs(options.NotifyEntitiesList.Value) do
+        if value53 and key10 == v36 then
+          v37 = true
+          break
+        end
+      end
+
+      if v37 then
+        f2("Entity Spawned", v36 .. " has spawned into the level!", 7)
+
+        if options.NotifyChat.Value then
+          f6(v36 .. " spawned!")
+        end
+      end
+    end
+  end
+
+  if options.ItemNotifier.Value then
+    local v38 = v3[descendant2.Name]
+
+    if v38 then
+      local v39 = false
+
+      for key11, value54 in pairs(options.NotifyItemsList.Value) do
+        if value54 and key11 == v38 then
+          v39 = true
+          break
+        end
+      end
+
+      if v39 then
+        f2("Item Spawned", v38 .. " has spawned nearby!", 5)
+      end
+    end
+  end
+end)
+
+for i = #v7.Prompts, 1, -1 do
+  if not v7.Prompts[i].Parent then
+    table.remove(v7.Prompts, i)
+  end
+end
+
+saveManager:SetLibrary(fluent)
+interfaceManager:SetLibrary(fluent)
+
+saveManager:IgnoreThemeSettings()
+saveManager:SetIgnoreIndexes({})
+
+interfaceManager:SetFolder("SolunaDevelopement")
+saveManager:SetFolder("SolunaDevelopement/configs")
+interfaceManager:BuildInterfaceSection(v1.Settings)
+saveManager:BuildConfigSection(v1.Settings)
+
+v1.Settings:CreateButton({
+  Title = "Rejoin Server",
+  Callback = function() teleportService:Teleport(game.PlaceId, localPlayer) end,
+})
+
+v1.Settings:CreateButton({
+  Title = "Unload Hub",
+  Callback = function()
+    for key12 in pairs(v27) do
+      f10(key12)
+    end
+
+    fluent:Destroy()
+  end,
+})
+
+
+doorsWindow:SelectTab(1)
+saveManager:LoadAutoloadConfig()
+f2("EnZo LETSE GO heheheha", "Integrated Script successfully loaded.")
