@@ -1,8 +1,14 @@
 local currentPlaceId = game.PlaceId
 local TARGET_PLACE_ID = 189707 -- ID
+local TPI = 94702395375549
 
 if currentPlaceId == TARGET_PLACE_ID then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/NDS"))()
-else
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/Main"))()
+	elseif
+	   currentPlaceId == TPI then
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/RunForBrainrots"))()
+				else
+					loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/Main"))()
+				end
+		end
 end
