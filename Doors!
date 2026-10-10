@@ -31,7 +31,7 @@ end)
 
 local doorsWindow = fluent:CreateWindow({
   Title = "Doors",
-  SubTitle = "by EnZo",
+  SubTitle = "by soluna and yeah by me i think GE-",
   TabWidth = 160,
   Size = UDim2.fromOffset(580, 460),
   Acrylic = true,
