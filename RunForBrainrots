@@ -1,0 +1,321 @@
+local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/refs/heads/main/source.lua", true))()
+
+local Window = Luna:CreateWindow({
+	Name = "En-Zo",
+	Subtitle = "12y scripter",
+	LogoID = "82795327169782",
+	LoadingEnabled = true,
+	LoadingTitle = "Luna Interface Suite",
+	LoadingSubtitle = "by EnZo himself",
+
+	ConfigSettings = {
+		RootFolder = nil,
+		ConfigFolder = "EnZoHub"
+	},
+
+	KeySystem = false,
+	KeySettings = {
+		Title = "Luna Example Key",
+		Subtitle = "Key System",
+		Note = "Best Key System Ever!",
+		SaveInRoot = false,
+		SaveKey = true,
+		Key = {"En-Zo"},
+		SecondAction = {
+			Enabled = true,
+			Type = "Link",
+			Parameter = "https://ItsTheNameGNG.com"
+		}
+	}
+})
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+local Tab = Window:CreateTab({
+	Name = "test",
+	Icon = "accessible",
+	ImageSource = "Material",
+	ShowTitle = true
+})
+
+Window:CreateHomeTab({
+	SupportedExecutors = {},
+	DiscordInvite = "1234",
+	Icon = 2,
+})
+
+local Paragraph = Tab:CreateParagraph({
+	Title = "Testing Area!",
+	Text = "idk how to change icon"
+})
+
+local Button = Tab:CreateButton({
+	Name = "Print something!",
+	Description = nil,
+    Callback = function()
+        print("Test")
+    end
+})
+
+local spamActive = false
+
+local Toggle = Tab:CreateToggle({
+	Name = "spam print",
+	Description = nil,
+	CurrentValue = false,
+    Callback = function(Value)
+        spamActive = Value
+         
+        if spamActive then
+            task.spawn(function()
+                while spamActive do
+                    print("by EnZo")
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+}, "Toggle")
+
+local Label = Tab:CreateLabel({
+	Text = "!This is the test page!",
+	Style = 2
+})
+
+local TeleportTab = Window:CreateTab({
+	Name = "Teleports",
+	Icon = "extension",
+	ImageSource = "Material",
+	ShowTitle = true
+})
+
+local ButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp common", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(-8.01, 18.70, -271.40)
+		end
+	end
+})
+
+local UcButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp uncommon", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(-0.87, 18.70, 174.87)
+		end
+	end
+})
+
+local RaButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp Rare", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(-6.30, 18.71, 603.18)
+		end
+	end
+})
+
+local EpButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp Epic", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(-10.29, 18.71, 1133.20)
+		end
+	end
+})
+
+local LeButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp Legendary", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(6.96, 18.70, 1734.51)
+		end
+	end
+})
+
+local MiButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp Mithical", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(17.67, 18.71, 2505.02)
+		end
+	end
+})
+
+local SeButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp Secret", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(3.98, 18.71, 3359.73)
+		end
+	end
+})
+
+local ceButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp celestrial", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(10.05, 18.71, 4197.81)
+		end
+	end
+})
+
+local DiButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp Divine", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(-5.23, 18.71, 5439.54)
+		end
+	end
+})
+
+local CosButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp Cosmic", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(1.58, 18.72, 7312.23)
+		end
+	end
+})
+
+local EtButtonTp = TeleportTab:CreateButton({ 
+	Name = "Tp Ethereal", 
+	Description = nil, 
+	Callback = function() 
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			character.HumanoidRootPart.CFrame = CFrame.new(-14.60, 18.72, 8917.34)
+		end
+	end
+})
+
+local MiscTab = Window:CreateTab({
+	Name = "Misc",
+	Icon = "miscellaneous_services",
+	ImageSource = "Material",
+	ShowTitle = true
+})
+
+local ParagraphMisc = MiscTab:CreateParagraph({
+	Title = "Welcome to MISC tab",
+	Text = "here are player optimazations"
+})
+
+local currentSpeed = 16
+
+local Slider = MiscTab:CreateSlider({ 
+    Name = "Speed Slider", 
+    Range = {16, 10000},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(Value) 
+        currentSpeed = Value
+        local character = LocalPlayer.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = currentSpeed
+            end
+        end
+    end 
+}, "Slider")
+
+LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+    task.wait(0.5)
+    local humanoid = newCharacter:WaitForChild("Humanoid", 5)
+    if humanoid then
+        humanoid.WalkSpeed = currentSpeed
+    end
+end)
+
+local infJumpConnection = nil
+
+local ToggleInfJump = MiscTab:CreateToggle({ 
+    Name = "Inf Jump", 
+    Description = nil, 
+    CurrentValue = false, 
+    Callback = function(Value) 
+        if Value then
+            if not infJumpConnection then
+                infJumpConnection = UserInputService.JumpRequest:Connect(function() 
+                    local character = LocalPlayer.Character
+                    if character then
+                        local humanoid = character:FindFirstChildOfClass("Humanoid")
+                        if humanoid then
+                            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                        end
+                    end
+                end)
+            end
+        else
+            if infJumpConnection then
+                infJumpConnection:Disconnect()
+                infJumpConnection = nil
+            end
+        end
+    end 
+}, "Toggle")
+
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+local instantPromptConnection = nil
+
+local ToggleInstantPrompt = MiscTab:CreateToggle({ 
+    Name = "Instant Proximity Prompt", 
+    Description = nil, 
+    CurrentValue = false, 
+    Callback = function(Value) 
+        if Value then
+            if not instantPromptConnection then
+                instantPromptConnection = ProximityPromptService.PromptShown:Connect(function(prompt)
+                    prompt.HoldDuration = 0
+                end)
+            end
+            for _, prompt in pairs(workspace:GetDescendants()) do
+                if prompt:IsA("ProximityPrompt") then
+                    prompt.HoldDuration = 0
+                end
+            end
+        else
+            if instantPromptConnection then
+                instantPromptConnection:Disconnect()
+                instantPromptConnection = nil
+            end
+        end
+    end 
+}, "Toggle")
+
