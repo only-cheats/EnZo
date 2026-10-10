@@ -150,3 +150,33 @@ local ToggleInfJump = MiscTab:CreateToggle({
         end
     end 
 }, "Toggle")
+
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+local instantPromptConnection = nil
+
+local ToggleInstantPrompt = MiscTab:CreateToggle({ 
+    Name = "Instant Proximity Prompt", 
+    Description = nil, 
+    CurrentValue = false, 
+    Callback = function(Value) 
+        if Value then
+            if not instantPromptConnection then
+                instantPromptConnection = ProximityPromptService.PromptShown:Connect(function(prompt)
+                    prompt.HoldDuration = 0
+                end)
+            end
+            for _, prompt in pairs(workspace:GetDescendants()) do
+                if prompt:IsA("ProximityPrompt") then
+                    prompt.HoldDuration = 0
+                end
+            end
+        else
+            if instantPromptConnection then
+                instantPromptConnection:Disconnect()
+                instantPromptConnection = nil
+            end
+        end
+    end 
+}, "Toggle")
+
