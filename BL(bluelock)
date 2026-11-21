@@ -1,0 +1,888 @@
+local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/refs/heads/main/source.lua", true))()
+
+local Window = Luna:CreateWindow({
+    Name = "En-Zo",
+    Subtitle = "Blue Lock Edition",
+    LogoID = "82795327169782",
+    LoadingEnabled = false,
+    LoadingTitle = "En-Zo Hub",
+    LoadingSubtitle = "Blue Lock by EnZo",
+    ConfigSettings = {
+        RootFolder = nil,
+        ConfigFolder = "EnZoHub"
+    },
+    KeySystem = false,
+})
+
+if not Window then
+    warn("[EnZo] Window failed to create.")
+    return
+end
+
+pcall(function()
+    Window:CreateHomeTab({
+        SupportedExecutors = {},
+        DiscordInvite = "1234",
+        Icon = 2,
+    })
+end)
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local LocalPlayer = Players.LocalPlayer
+
+local SPRINT_KEY = Enum.KeyCode.LeftShift
+local DRIBBLE_KEY = Enum.KeyCode.Q
+local STEAL_KEY = Enum.KeyCode.F
+
+local Connections = {}
+local running = true
+local currentSpeed = 16
+
+local autoSprintActive = false
+local ballMagnetActive = false
+local autoFarmActive = false
+local infStaminaActive = false
+local autoDribbleActive = false
+local autoStealActive = false
+local sprintSpeed = 24
+local stealRange = 12
+local dribbleRange = 12
+
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+local KEY_WORDS = {
+    [SPRINT_KEY] = { "sprint", "run" },
+    [DRIBBLE_KEY] = { "dribble", "skill", "dodge" },
+    [STEAL_KEY] = { "steal", "tackle", "slide" },
+}
+
+local ownGuis = {}
+local buttonCache = {}
+
+local function findGameButton(words)
+    local cacheKey = words[1]
+    local cached = buttonCache[cacheKey]
+    if cached and cached.Parent then return cached end
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    for _, obj in ipairs(pg:GetDescendants()) do
+        if obj:IsA("GuiButton") then
+            local label = obj.Name:lower()
+            if obj:IsA("TextButton") then label = label .. " " .. obj.Text:lower() end
+            for _, w in ipairs(words) do
+                if label:find(w) then
+                    buttonCache[cacheKey] = obj
+                    return obj
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function activateButton(btn)
+    local fired = false
+    if type(getconnections) == "function" then
+        for _, sigName in ipairs({ "Activated", "MouseButton1Click", "MouseButton1Down", "TouchTap" }) do
+            local ok, conns = pcall(getconnections, btn[sigName])
+            if ok and conns then
+                for _, c in ipairs(conns) do
+                    if pcall(function() c:Fire() end) then fired = true end
+                end
+            end
+        end
+    end
+    if not fired and type(firesignal) == "function" then
+        if pcall(firesignal, btn.Activated) then fired = true end
+    end
+    return fired
+end
+
+local function pressKey(key, down)
+    if isMobile and KEY_WORDS[key] then
+        if not down then return end
+        local btn = findGameButton(KEY_WORDS[key])
+        if btn and activateButton(btn) then return end
+    end
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(down, key, false, game)
+    end)
+end
+
+local function tapKey(key)
+    if isMobile and KEY_WORDS[key] then
+        local btn = findGameButton(KEY_WORDS[key])
+        if btn and activateButton(btn) then return end
+    end
+    pressKey(key, true)
+    task.wait(0.05)
+    pressKey(key, false)
+end
+
+local function track(conn)
+    if conn then table.insert(Connections, conn) end
+    return conn
+end
+
+local function getHumanoid()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChildOfClass("Humanoid")
+end
+
+local CoreGui = game:GetService("CoreGui")
+local lunaGui
+local guiHidden = false
+
+local function findLunaGui()
+    local roots = { CoreGui, LocalPlayer:FindFirstChild("PlayerGui") }
+    if type(gethui) == "function" then
+        local ok, h = pcall(gethui)
+        if ok and h then table.insert(roots, h) end
+    end
+    for _, root in ipairs(roots) do
+        for _, g in ipairs(root:GetChildren()) do
+            if g:IsA("ScreenGui") then
+                for _, d in ipairs(g:GetDescendants()) do
+                    if d:IsA("TextLabel") and d.Text == "En-Zo" then
+                        return g
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function collect(root)
+    local list = { root }
+    for _, c in ipairs(root:GetDescendants()) do
+        if c:IsA("GuiObject") then table.insert(list, c) end
+    end
+    return list
+end
+
+local function findByName(gui, matcher)
+    local found = {}
+    for _, d in ipairs(gui:GetDescendants()) do
+        if d:IsA("GuiObject") and matcher(d.Name:lower()) then
+            for _, o in ipairs(collect(d)) do table.insert(found, o) end
+        end
+    end
+    return found
+end
+
+local SIGNALS = { "InputBegan", "InputEnded", "Activated", "MouseButton1Click", "MouseButton1Down", "MouseButton1Up" }
+
+local function forEachConnection(obj, fn)
+    if type(getconnections) ~= "function" then return end
+    for _, sigName in ipairs(SIGNALS) do
+        local sig
+        pcall(function() sig = obj[sigName] end)
+        if sig then
+            local ok, conns = pcall(getconnections, sig)
+            if ok and conns then
+                for _, c in ipairs(conns) do fn(c, sigName) end
+            end
+        end
+    end
+end
+
+local function fakeInput()
+    return {
+        UserInputType = Enum.UserInputType.MouseButton1,
+        UserInputState = Enum.UserInputState.Begin,
+        KeyCode = Enum.KeyCode.Unknown,
+        Position = Vector3.zero,
+        Delta = Vector3.zero,
+    }
+end
+
+local function triggerMinimize(targets)
+    for _, obj in ipairs(targets) do
+        forEachConnection(obj, function(c, sigName)
+            pcall(function()
+                if sigName == "InputBegan" or sigName == "InputEnded" then
+                    c:Fire(fakeInput(), false)
+                else
+                    c:Fire()
+                end
+            end)
+        end)
+    end
+end
+
+local function hookCloseToMinimize()
+    if not lunaGui or type(getconnections) ~= "function" then return end
+    local closeTargets = findByName(lunaGui, function(n) return n:find("close") end)
+    local minTargets = findByName(lunaGui, function(n) return n:find("minim") or n == "hide" end)
+    if #closeTargets == 0 or #minTargets == 0 then
+        warn("[EnZo] Could not find close/minimize buttons, X keeps its default behavior.")
+        return
+    end
+    for _, obj in ipairs(closeTargets) do
+        forEachConnection(obj, function(c) pcall(function() c:Disable() end) end)
+        track(obj.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1
+                or input.UserInputType == Enum.UserInputType.Touch then
+                triggerMinimize(minTargets)
+            end
+        end))
+    end
+end
+
+task.spawn(function()
+    for _ = 1, 15 do
+        lunaGui = findLunaGui()
+        if lunaGui then break end
+        task.wait(0.5)
+    end
+    if lunaGui then
+        hookCloseToMinimize()
+    end
+end)
+
+track(UserInputService.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.RightShift and lunaGui then
+        guiHidden = not guiHidden
+        lunaGui.Enabled = not guiHidden
+    end
+end))
+
+local Tab = Window:CreateTab({
+    Name = "Match",
+    Icon = "sports_soccer",
+    ImageSource = "Material",
+    ShowTitle = true
+})
+
+Tab:CreateParagraph({
+    Title = "Blue Lock Match Tools",
+    Text = "Match, ball, and stamina helpers. If stamina does not work, press Debug Stamina Sources and check the F9 console."
+})
+
+local sprintConn
+local sprintHum
+local sprintSpeedConn
+
+local function bindSprintHumanoid()
+    if sprintSpeedConn then sprintSpeedConn:Disconnect(); sprintSpeedConn = nil end
+    sprintHum = getHumanoid()
+    if sprintHum then
+        sprintSpeedConn = sprintHum:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            if autoSprintActive and running and sprintHum.WalkSpeed < sprintSpeed then
+                sprintHum.WalkSpeed = sprintSpeed
+            end
+        end)
+    end
+end
+
+Tab:CreateToggle({
+    Name = "Auto Sprint",
+    Description = "Holds the sprint key and keeps your speed at the sprint speed",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoSprintActive = Value
+        if Value then
+            bindSprintHumanoid()
+            pressKey(SPRINT_KEY, true)
+            local hum = getHumanoid()
+            if hum and hum.WalkSpeed < sprintSpeed then hum.WalkSpeed = sprintSpeed end
+            if not sprintConn then
+                sprintConn = track(RunService.Heartbeat:Connect(function()
+                    if not autoSprintActive or not running then return end
+                    local h = getHumanoid()
+                    if h and h.WalkSpeed < sprintSpeed then
+                        h.WalkSpeed = sprintSpeed
+                    end
+                end))
+            end
+        else
+            pressKey(SPRINT_KEY, false)
+            if sprintConn then sprintConn:Disconnect(); sprintConn = nil end
+            if sprintSpeedConn then sprintSpeedConn:Disconnect(); sprintSpeedConn = nil end
+            local hum = getHumanoid()
+            if hum then hum.WalkSpeed = currentSpeed end
+        end
+    end
+}, "Toggle")
+
+Tab:CreateSlider({
+    Name = "Sprint Speed",
+    Range = {16, 100},
+    Increment = 1,
+    CurrentValue = 24,
+    Callback = function(Value)
+        sprintSpeed = Value
+    end
+}, "Slider")
+
+track(LocalPlayer.CharacterAdded:Connect(function()
+    if autoSprintActive then
+        task.wait(1)
+        bindSprintHumanoid()
+        pressKey(SPRINT_KEY, true)
+    end
+end))
+
+local ballConn
+local cachedBall
+
+local lastBallSearch = 0
+
+local function getBall()
+    if cachedBall and cachedBall.Parent then
+        return cachedBall
+    end
+    if os.clock() - lastBallSearch < 1 then
+        return nil
+    end
+    lastBallSearch = os.clock()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local n = obj.Name:lower()
+            if n:find("ball") or n:find("soccer") or n:find("football") then
+                cachedBall = obj
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+Tab:CreateToggle({
+    Name = "Ball Magnet",
+    Description = "Pulls the ball toward you (works best if client owns physics)",
+    CurrentValue = false,
+    Callback = function(Value)
+        ballMagnetActive = Value
+        if Value then
+            if not ballConn then
+                ballConn = track(RunService.Heartbeat:Connect(function()
+                    if not ballMagnetActive or not running then return end
+                    local char = LocalPlayer.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    local ball = getBall()
+                    if hrp and ball then
+                        pcall(function()
+                            ball.AssemblyLinearVelocity = Vector3.zero
+                            ball.AssemblyAngularVelocity = Vector3.zero
+                            ball.CFrame = CFrame.new(hrp.Position + (hrp.CFrame.LookVector * 3))
+                        end)
+                    end
+                end))
+            end
+        else
+            if ballConn then ballConn:Disconnect(); ballConn = nil end
+        end
+    end
+}, "Toggle")
+
+local STAMINA_WORDS = { "stam", "energy", "endurance", "fatigue" }
+local STAMINA_EXACT = { sp = true }
+local STAMINA_SKIP = { "max", "drain", "cost", "regen", "rate", "cooldown", "speed", "multi", "delay", "gain", "use" }
+
+local function isStaminaName(name)
+    local n = tostring(name):lower()
+    for _, bad in ipairs(STAMINA_SKIP) do
+        if n:find(bad) then return false end
+    end
+    if STAMINA_EXACT[n] then return true end
+    for _, word in ipairs(STAMINA_WORDS) do
+        if n:find(word) then return true end
+    end
+    return false
+end
+
+local locked = {}
+local lockConns = {}
+local gcTables = {}
+local staminaConn
+local rescanThread
+
+local function targetFor(seen, maxHint)
+    return math.max(seen or 0, maxHint or 0, 100)
+end
+
+local function findMaxSibling(parent, name)
+    if not parent then return nil end
+    local candidates = { "Max" .. name, name .. "Max", "Max_" .. name, name .. "_Max", "MaxStamina", "StaminaMax" }
+    for _, c in ipairs(candidates) do
+        local obj = parent:FindFirstChild(c)
+        if obj and (obj:IsA("NumberValue") or obj:IsA("IntValue")) then
+            return obj.Value
+        end
+        local attr = parent:GetAttribute(c)
+        if type(attr) == "number" then return attr end
+    end
+    return nil
+end
+
+local function lockValueObject(obj)
+    if locked[obj] then return end
+    local entry = { kind = "value", max = targetFor(obj.Value, findMaxSibling(obj.Parent, obj.Name)) }
+    locked[obj] = entry
+    local conn = obj:GetPropertyChangedSignal("Value"):Connect(function()
+        if infStaminaActive and running and obj.Value < entry.max then
+            pcall(function() obj.Value = entry.max end)
+        end
+    end)
+    table.insert(lockConns, conn)
+    pcall(function() obj.Value = entry.max end)
+end
+
+local function lockAttribute(inst, name)
+    local key = inst
+    locked[key] = locked[key] or {}
+    if locked[key][name] then return end
+    local current = inst:GetAttribute(name)
+    local entry = { kind = "attr", max = targetFor(current, findMaxSibling(inst, name)) }
+    locked[key][name] = entry
+    local conn = inst:GetAttributeChangedSignal(name):Connect(function()
+        local v = inst:GetAttribute(name)
+        if infStaminaActive and running and type(v) == "number" and v < entry.max then
+            pcall(function() inst:SetAttribute(name, entry.max) end)
+        end
+    end)
+    table.insert(lockConns, conn)
+    pcall(function() inst:SetAttribute(name, entry.max) end)
+end
+
+local function checkObject(obj)
+    if (obj:IsA("NumberValue") or obj:IsA("IntValue")) and isStaminaName(obj.Name) then
+        lockValueObject(obj)
+    end
+    for attrName, attrVal in pairs(obj:GetAttributes()) do
+        if type(attrVal) == "number" and isStaminaName(attrName) then
+            lockAttribute(obj, attrName)
+        end
+    end
+end
+
+local function scanInstance(root)
+    if not root then return end
+    checkObject(root)
+    local count = 0
+    for _, obj in ipairs(root:GetDescendants()) do
+        checkObject(obj)
+        count += 1
+        if count % 250 == 0 then
+            task.wait()
+        end
+    end
+end
+
+local gcScanned = false
+
+local function scanGcTables()
+    if type(getgc) ~= "function" then return end
+    local found = {}
+    local ok, objs = pcall(getgc, true)
+    if not ok or type(objs) ~= "table" then return end
+    local count = 0
+    for _, v in ipairs(objs) do
+        if type(v) == "table" then
+            pcall(function()
+                for key, val in next, v do
+                    if type(key) == "string" and type(val) == "number" and isStaminaName(key) then
+                        local entry = found[v] or {}
+                        entry[key] = math.max(val, 100)
+                        found[v] = entry
+                    end
+                end
+            end)
+        end
+        count += 1
+        if count % 2000 == 0 then
+            task.wait()
+        end
+    end
+    gcTables = found
+    gcScanned = true
+end
+
+local function applyGcTables()
+    for tbl, keys in next, gcTables do
+        for key, maxVal in next, keys do
+            local current = rawget(tbl, key)
+            if type(current) == "number" and current < maxVal then
+                pcall(rawset, tbl, key, maxVal)
+            end
+        end
+    end
+end
+
+local function watchRoot(root)
+    if not root then return end
+    local conn = root.DescendantAdded:Connect(function(obj)
+        if infStaminaActive and running then
+            task.defer(checkObject, obj)
+        end
+    end)
+    table.insert(lockConns, conn)
+end
+
+local function stopStamina()
+    infStaminaActive = false
+    if staminaConn then staminaConn:Disconnect(); staminaConn = nil end
+    for _, c in ipairs(lockConns) do
+        pcall(function() c:Disconnect() end)
+    end
+    table.clear(lockConns)
+    table.clear(locked)
+end
+
+local function startStamina()
+    infStaminaActive = true
+
+    staminaConn = track(RunService.Heartbeat:Connect(function()
+        if infStaminaActive and running then
+            applyGcTables()
+        end
+    end))
+
+    watchRoot(LocalPlayer.Character)
+    watchRoot(LocalPlayer)
+
+    task.spawn(function()
+        scanInstance(LocalPlayer.Character)
+        scanInstance(LocalPlayer)
+        if not infStaminaActive then return end
+        if not gcScanned then
+            scanGcTables()
+        end
+        if not infStaminaActive then return end
+        pcall(scanInstance, ReplicatedStorage)
+    end)
+end
+
+track(LocalPlayer.CharacterAdded:Connect(function()
+    if infStaminaActive then
+        task.wait(1)
+        watchRoot(LocalPlayer.Character)
+        scanInstance(LocalPlayer.Character)
+    end
+end))
+
+Tab:CreateToggle({
+    Name = "Infinite Stamina",
+    Description = "Locks stamina values, attributes, and client-side tables at max",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            startStamina()
+        else
+            stopStamina()
+        end
+    end
+}, "Toggle")
+
+Tab:CreateButton({
+    Name = "Debug Stamina Sources",
+    Description = "Prints every stamina-like value, attribute, and table to the F9 console",
+    Callback = function()
+        print("[EnZo] Stamina debug start")
+        local roots = { LocalPlayer.Character, LocalPlayer, ReplicatedStorage }
+        for _, root in ipairs(roots) do
+            if root then
+                local list = root:GetDescendants()
+                table.insert(list, root)
+                for _, obj in ipairs(list) do
+                    if (obj:IsA("NumberValue") or obj:IsA("IntValue")) and isStaminaName(obj.Name) then
+                        print("[EnZo] Value:", obj:GetFullName(), "=", obj.Value)
+                    end
+                    for attrName, attrVal in pairs(obj:GetAttributes()) do
+                        if isStaminaName(attrName) then
+                            print("[EnZo] Attribute:", obj:GetFullName(), attrName, "=", tostring(attrVal))
+                        end
+                    end
+                end
+            end
+        end
+        if type(getgc) == "function" then
+            scanGcTables()
+            local count = 0
+            for tbl, keys in pairs(gcTables) do
+                for key, _ in pairs(keys) do
+                    count += 1
+                    print("[EnZo] GC table key:", key, "=", tostring(rawget(tbl, key)))
+                end
+            end
+            print("[EnZo] GC stamina keys found:", count)
+        else
+            print("[EnZo] Your executor has no getgc, table scan unavailable.")
+        end
+        print("[EnZo] Stamina debug end")
+    end
+})
+
+local function isEnemy(plr)
+    if plr == LocalPlayer then return false end
+    if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then return false end
+    return true
+end
+
+local function getBallHolder(ball)
+    local best, bestDist = nil, 8
+    for _, plr in ipairs(Players:GetPlayers()) do
+        local char = plr.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local d = (hrp.Position - ball.Position).Magnitude
+            if d < bestDist then
+                best, bestDist = plr, d
+            end
+        end
+    end
+    return best
+end
+
+local actionConn
+local lastDribble, lastSteal = 0, 0
+
+local function ensureActionLoop()
+    if actionConn then return end
+    actionConn = true
+    task.spawn(function()
+        while running and (autoDribbleActive or autoStealActive) do
+            task.wait(0.1)
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local ball = hrp and getBall()
+            if hrp and ball then
+                local holder = getBallHolder(ball)
+                local now = os.clock()
+
+                if autoStealActive and holder and isEnemy(holder)
+                    and (hrp.Position - ball.Position).Magnitude <= stealRange
+                    and now - lastSteal > 0.4 then
+                    lastSteal = now
+                    if type(firetouchinterest) == "function" then
+                        pcall(function()
+                            firetouchinterest(ball, hrp, 0)
+                            firetouchinterest(ball, hrp, 1)
+                        end)
+                    end
+                    task.spawn(tapKey, STEAL_KEY)
+                end
+
+                if autoDribbleActive and holder == LocalPlayer and now - lastDribble > 0.8 then
+                    for _, plr in ipairs(Players:GetPlayers()) do
+                        if isEnemy(plr) then
+                            local eh = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                            if eh and (eh.Position - hrp.Position).Magnitude <= dribbleRange then
+                                lastDribble = now
+                                task.spawn(tapKey, DRIBBLE_KEY)
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        actionConn = nil
+    end)
+end
+
+Tab:CreateToggle({
+    Name = "Auto Dribble",
+    Description = "Presses the dribble key when you have the ball and an enemy gets close",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoDribbleActive = Value
+        if Value then ensureActionLoop() end
+    end
+}, "Toggle")
+
+Tab:CreateSlider({
+    Name = "Dribble Trigger Range",
+    Range = {5, 30},
+    Increment = 1,
+    CurrentValue = 12,
+    Callback = function(Value)
+        dribbleRange = Value
+    end
+}, "Slider")
+
+Tab:CreateToggle({
+    Name = "Auto Steal Ball",
+    Description = "Tries to take the ball when an enemy holding it is in range",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoStealActive = Value
+        if Value then ensureActionLoop() end
+    end
+}, "Toggle")
+
+Tab:CreateSlider({
+    Name = "Steal Range",
+    Range = {5, 30},
+    Increment = 1,
+    CurrentValue = 12,
+    Callback = function(Value)
+        stealRange = Value
+    end
+}, "Slider")
+
+Tab:CreateToggle({
+    Name = "Anti Idle",
+    Description = "Prevents idle kick with periodic input",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoFarmActive = Value
+        if Value then
+            task.spawn(function()
+                while autoFarmActive and running do
+                    pcall(function()
+                        VirtualUser:CaptureController()
+                        VirtualUser:ClickButton2(Vector2.new())
+                    end)
+                    task.wait(5)
+                end
+            end)
+        end
+    end
+}, "Toggle")
+
+Tab:CreateButton({
+    Name = "Print Ball Info",
+    Description = "Debug: shows the detected ball in F9 console",
+    Callback = function()
+        cachedBall = nil
+        local ball = getBall()
+        if ball then
+            print("[EnZo] Ball found:", ball:GetFullName())
+        else
+            print("[EnZo] No ball found in workspace.")
+        end
+    end
+})
+
+local MiscTab = Window:CreateTab({
+    Name = "Misc",
+    Icon = "miscellaneous_services",
+    ImageSource = "Material",
+    ShowTitle = true
+})
+
+MiscTab:CreateParagraph({
+    Title = "Player",
+    Text = "Movement and quality-of-life options."
+})
+
+MiscTab:CreateSlider({
+    Name = "Speed Slider",
+    Range = {16, 500},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(Value)
+        currentSpeed = Value
+        if not autoSprintActive then
+            local hum = getHumanoid()
+            if hum then hum.WalkSpeed = currentSpeed end
+        end
+    end
+}, "Slider")
+
+track(LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+    task.wait(0.5)
+    local hum = newCharacter:WaitForChild("Humanoid", 5)
+    if hum then
+        hum.WalkSpeed = autoSprintActive and math.max(currentSpeed, 24) or currentSpeed
+    end
+end))
+
+local infJumpConnection
+MiscTab:CreateToggle({
+    Name = "Inf Jump",
+    Description = "Jump again while in the air",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            if not infJumpConnection then
+                infJumpConnection = track(UserInputService.JumpRequest:Connect(function()
+                    local hum = getHumanoid()
+                    if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+                end))
+            end
+        else
+            if infJumpConnection then infJumpConnection:Disconnect(); infJumpConnection = nil end
+        end
+    end
+}, "Toggle")
+
+local instantPromptConnection
+MiscTab:CreateToggle({
+    Name = "Instant Proximity Prompt",
+    Description = "Removes hold time on prompts",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            if not instantPromptConnection then
+                instantPromptConnection = track(ProximityPromptService.PromptShown:Connect(function(prompt)
+                    prompt.HoldDuration = 0
+                end))
+            end
+            for _, prompt in ipairs(workspace:GetDescendants()) do
+                if prompt:IsA("ProximityPrompt") then
+                    prompt.HoldDuration = 0
+                end
+            end
+        else
+            if instantPromptConnection then instantPromptConnection:Disconnect(); instantPromptConnection = nil end
+        end
+    end
+}, "Toggle")
+
+local InfoTab = Window:CreateTab({
+    Name = "Info",
+    Icon = "info",
+    ImageSource = "Material",
+    ShowTitle = true
+})
+
+InfoTab:CreateParagraph({
+    Title = "Warning",
+    Text = "This script may have issues. Some features might not work or might break after game updates. Development has stopped because the author gave up on it."
+})
+
+MiscTab:CreateButton({
+    Name = "Unload GUI",
+    Description = "Stops all loops, disconnects connections, and unloads the UI",
+    Callback = function()
+        running = false
+        autoSprintActive = false
+        ballMagnetActive = false
+        autoFarmActive = false
+        autoDribbleActive = false
+        autoStealActive = false
+        pressKey(SPRINT_KEY, false)
+        stopStamina()
+
+        for i = #Connections, 1, -1 do
+            local conn = Connections[i]
+            if conn and typeof(conn) == "RBXScriptConnection" then
+                pcall(function() conn:Disconnect() end)
+            end
+            Connections[i] = nil
+        end
+
+        local hum = getHumanoid()
+        if hum then
+            pcall(function() hum.WalkSpeed = 16 end)
+        end
+
+        pcall(function()
+            if Luna and Luna.Destroy then
+                Luna:Destroy()
+            elseif Window and Window.Destroy then
+                Window:Destroy()
+            end
+        end)
+    end
+})
