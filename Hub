@@ -2,15 +2,16 @@ local currentPlaceId = game.PlaceId
 local TARGET_PLACE_ID = 189707
 local TPI = 94702395375549
 local TPID = 6516141723
+local BL = 18668065416
 
 if currentPlaceId == TARGET_PLACE_ID then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/NDS"))()
 elseif currentPlaceId == TPI then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/RunForBrainrots"))()
 elseif currentPlaceId == TPID then
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/Doors!"))()
-elseif currentPlaceId = 18668065416 then
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/BL(bluelock)"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/Doors!"))()
+elseif currentPlaceId == BL then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/BL(bluelock)"))()
 else
     loadstring(game:HttpGet("https://raw.githubusercontent.com/only-cheats/EnZo/refs/heads/main/Main"))()
 end
